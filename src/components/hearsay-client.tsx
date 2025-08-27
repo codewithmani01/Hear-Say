@@ -1,6 +1,5 @@
 "use client";
 
-import { adjustIntonation } from "@/ai/flows/adjust-intonation";
 import { extractTextFromImage } from "@/ai/flows/extract-text-from-image";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,54 +20,42 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Pause, Play, ScanText, User, FileText, Image as ImageIcon } from "lucide-react";
+import { Loader2, Pause, Play, ScanText, User, FileText, Image as ImageIcon, Volume2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-
-const voices = [
-    { id: 'algenib', name: 'Algenib', gender: 'Female', description: 'Clear and professional' },
-    { id: 'gacrux', name: 'Gacrux', gender: 'Male', description: 'Deep and resonant' },
-    { id: 'umbriel', name: 'Umbriel', gender: 'Male', description: 'Warm and friendly' },
-    { id: 'vindemiatrix', name: 'Vindemiatrix', gender: 'Female', description: 'Bright and energetic' },
-    { id: 'despina', name: 'Despina', gender: 'Female', description: 'Calm and soothing' },
-    { id: 'zubenelgenubi', name: 'Zubenelgenubi', gender: 'Male', description: 'Authoritative and crisp' },
-    { id: 'achernar', name: 'Achernar', gender: 'Male', description: 'Smooth and melodic' },
-    { id: 'achird', name: 'Achird', gender: 'Female', description: 'Gentle and kind' },
-    { id: 'algieba', name: 'Algieba', gender: 'Male', description: 'Powerful and commanding' },
-    { id: 'alnilam', name: 'Alnilam', gender: 'Female', description: 'Graceful and elegant' },
-    { id: 'aoede', name: 'Aoede', gender: 'Female', description: 'Lively and animated' },
-    { id: 'autonoe', name: 'Autonoe', gender: 'Female', description: 'Robotic and futuristic' },
-    { id: 'callirrhoe', name: 'Callirrhoe', gender: 'Female', description: 'Sweet and caring' },
-    { id: 'charon', name: 'Charon', gender: 'Male', description: 'Mysterious and deep' },
-    { id: 'enceladus', name: 'Enceladus', gender: 'Male', description: 'Heroic and epic' },
-    { id: 'erinome', name: 'Erinome', gender: 'Female', description: 'Confident and clear' },
-    { id: 'fenrir', name: 'Fenrir', gender: 'Male', description: 'Gruff and strong' },
-    { id: 'iapetus', name: 'Iapetus', gender: 'Male', description: 'Wise and old' },
-    { id: 'kore', name: 'Kore', gender: 'Female', description: 'Youthful and playful' },
-    { id: 'laomedeia', name: 'Laomedeia', gender: 'Female', description: 'Sophisticated and calm' },
-    { id: 'leda', name: 'Leda', gender: 'Female', description: 'Storyteller' },
-    { id: 'puck', name: 'Puck', gender: 'Male', description: 'Mischievous and fun' },
-    { id: 'pulcherrima', name: 'Pulcherrima', gender: 'Female', description: 'Elegant and refined' },
-    { id: 'rasalgethi', name: 'Rasalgethi', gender: 'Male', description: 'Regal and noble' },
-    { id: 'sadachbia', name: 'Sadachbia', gender: 'Female', description: 'Enthusiastic and upbeat' },
-    { id: 'sadaltager', name: 'Sadaltager', gender: 'Male', description: 'Friendly and approachable' },
-    { id: 'schedar', name: 'Schedar', gender: 'Female', description: 'Warm and motherly' },
-    { id: 'sulafat', name: 'Sulafat', gender: 'Male', description: 'Calm and reassuring' },
-    { id: 'zephyr', name: 'Zephyr', gender: 'Male', description: 'Light and airy' },
-];
 
 export function HearSayClient() {
   const [text, setText] = useState(
-    "Welcome to HearSay! With our advanced AI, you can transform any text into natural-sounding speech. Just type, choose a voice, and press play. Experience the future of text-to-speech."
+    "Welcome to HearSay! With the browser's built-in speech synthesis, you can transform any text into natural-sounding speech, completely for free. Just type, choose a voice, and press play."
   );
-  const [selectedVoice, setSelectedVoice] = useState(voices[0].id);
+  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
+  const [selectedVoiceURI, setSelectedVoiceURI] = useState<string | undefined>();
   const [isLoading, setIsLoading] = useState(false);
   const [isExtracting, setIsExtracting] = useState(false);
-  const [audioSrc, setAudioSrc] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const audioRef = useRef<HTMLAudioElement>(null);
+  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   const { toast } = useToast();
+
+  useEffect(() => {
+    const handleVoicesChanged = () => {
+      const availableVoices = window.speechSynthesis.getVoices();
+      setVoices(availableVoices);
+      if (availableVoices.length > 0) {
+        setSelectedVoiceURI(availableVoices[0].voiceURI);
+      }
+    };
+
+    // speech.getVoices() is sometimes async, so we need to listen for the voiceschanged event.
+    window.speechSynthesis.onvoiceschanged = handleVoicesChanged;
+    handleVoicesChanged(); // Also call it directly in case voices are already available.
+
+    return () => {
+      window.speechSynthesis.onvoiceschanged = null;
+      window.speechSynthesis.cancel();
+    };
+  }, []);
+
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -124,73 +111,62 @@ export function HearSayClient() {
     }
   };
 
-  const handleGenerateSpeech = async () => {
-    if (!text.trim()) {
+  const handleGenerateSpeech = () => {
+    if (!text.trim() || !window.speechSynthesis) {
       toast({
-        title: "Empty Text",
-        description: "Please enter some text to generate speech.",
+        title: "Speech Synthesis not supported",
+        description: "Your browser does not support the Web Speech API.",
         variant: "destructive",
       });
       return;
     }
+
     setIsLoading(true);
-    setAudioSrc(null);
-    setIsPlaying(false);
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.currentTime = 0;
+    window.speechSynthesis.cancel();
+    
+    const utterance = new SpeechSynthesisUtterance(text);
+    utteranceRef.current = utterance;
+
+    const selectedVoice = voices.find(v => v.voiceURI === selectedVoiceURI);
+    if (selectedVoice) {
+      utterance.voice = selectedVoice;
     }
-    try {
-      const result = await adjustIntonation({ text, voiceName: selectedVoice });
-      setAudioSrc(result.media);
-    } catch (error: any) {
-      console.error("Error generating speech:", error);
-      if (error.message && error.message.includes("429")) {
-        toast({
-          title: "Quota Exceeded",
-          description: "You've hit the free tier limit for today. Please try again tomorrow.",
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Error",
-          description: "Failed to generate speech. Please try again.",
-          variant: "destructive",
-        });
-      }
-    } finally {
+
+    utterance.onstart = () => {
+      setIsPlaying(true);
       setIsLoading(false);
-    }
+    };
+
+    utterance.onend = () => {
+      setIsPlaying(false);
+      utteranceRef.current = null;
+    };
+    
+    utterance.onerror = (event) => {
+        console.error("SpeechSynthesisUtterance.onerror", event);
+        toast({
+            title: "Speech Error",
+            description: "An error occurred during speech synthesis.",
+            variant: "destructive",
+        });
+        setIsLoading(false);
+        setIsPlaying(false);
+    };
+
+    window.speechSynthesis.speak(utterance);
   };
 
-  useEffect(() => {
-    if (audioSrc && audioRef.current) {
-      audioRef.current.play();
-      setIsPlaying(true);
-    }
-  }, [audioSrc]);
-
-  useEffect(() => {
-    const audioElement = audioRef.current;
-    const handleEnded = () => setIsPlaying(false);
-
-    if (audioElement) {
-      audioElement.addEventListener("ended", handleEnded);
-      return () => {
-        audioElement.removeEventListener("ended", handleEnded);
-      };
-    }
-  }, []);
-
   const togglePlayPause = () => {
-    if (audioRef.current) {
-      if (isPlaying) {
-        audioRef.current.pause();
+    if (isPlaying) {
+      window.speechSynthesis.pause();
+    } else {
+      if (utteranceRef.current && window.speechSynthesis.paused) {
+          window.speechSynthesis.resume();
       } else {
-        audioRef.current.play();
+          handleGenerateSpeech();
       }
-      setIsPlaying(!isPlaying);
     }
+    setIsPlaying(!isPlaying);
   };
 
   return (
@@ -265,7 +241,7 @@ export function HearSayClient() {
               <Label htmlFor="voice-select" className="text-lg font-semibold">
                 Select a Voice
               </Label>
-              <Select value={selectedVoice} onValueChange={setSelectedVoice}>
+              <Select value={selectedVoiceURI} onValueChange={setSelectedVoiceURI}>
                 <SelectTrigger
                   id="voice-select"
                   className="w-full h-14 text-base rounded-lg focus:ring-primary/50 bg-transparent"
@@ -274,7 +250,7 @@ export function HearSayClient() {
                 </SelectTrigger>
                 <SelectContent>
                   {voices.map((voice) => (
-                    <SelectItem key={voice.id} value={voice.id}>
+                    <SelectItem key={voice.voiceURI} value={voice.voiceURI}>
                       <div className="flex items-center gap-3 py-1">
                         <div className="bg-primary/10 p-2 rounded-full">
                           <User className="size-5 text-primary" />
@@ -282,7 +258,7 @@ export function HearSayClient() {
                         <div>
                           <p className="font-medium">{voice.name}</p>
                           <p className="text-xs text-muted-foreground">
-                            {voice.gender} &middot; {voice.description}
+                            {voice.lang}
                           </p>
                         </div>
                       </div>
@@ -294,7 +270,7 @@ export function HearSayClient() {
             <div className="mt-8 flex flex-col items-center gap-4">
               <Button
                 onClick={handleGenerateSpeech}
-                disabled={isLoading || !text.trim()}
+                disabled={isLoading || !text.trim() || isPlaying}
                 className="w-full h-14 text-lg font-bold rounded-lg transition-all duration-300 hover:shadow-lg hover:scale-105 active:scale-100 bg-primary/90 hover:bg-primary"
                 size="lg"
               >
@@ -307,7 +283,7 @@ export function HearSayClient() {
                   "Hear It Now"
                 )}
               </Button>
-              {audioSrc && (
+              {isPlaying && (
                 <div className="w-full flex justify-center mt-4">
                   <Button
                     onClick={togglePlayPause}
@@ -323,7 +299,6 @@ export function HearSayClient() {
                       <Play className="h-8 w-8 ml-1" />
                     )}
                   </Button>
-                  <audio ref={audioRef} src={audioSrc} className="hidden" />
                 </div>
               )}
             </div>

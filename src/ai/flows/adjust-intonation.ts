@@ -10,7 +10,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import * as wav from 'wav';
+import wav from 'wav';
 
 const AdjustIntonationInputSchema = z.object({
   text: z.string().describe('The text to convert to speech.'),
