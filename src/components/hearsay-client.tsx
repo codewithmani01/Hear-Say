@@ -75,7 +75,11 @@ export function HearSayClient() {
     if (file) {
       setSelectedFile(file);
       if (file.type.startsWith('image/')) {
-        setPreviewUrl(URL.createObjectURL(file));
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setPreviewUrl(reader.result as string);
+        }
+        reader.readAsDataURL(file);
       } else {
         setPreviewUrl(null);
       }
@@ -192,7 +196,7 @@ export function HearSayClient() {
         </CardDescription>
       </CardHeader>
       <CardContent className="p-0">
-        <div className="grid md:grid-cols-3">
+        <div className="grid md:grid-cols-2 lg:grid-cols-3">
            <div className="p-6 md:p-8 border-b md:border-b-0 md:border-r border-white/10">
             <div className="space-y-4 h-full flex flex-col">
               <Label htmlFor="image-upload" className="text-lg font-semibold">
@@ -202,12 +206,12 @@ export function HearSayClient() {
                 {previewUrl ? (
                   <img src={previewUrl} alt="Preview" className="w-full h-full object-cover rounded-lg" />
                 ) : selectedFile ? (
-                  <div className="text-center">
+                  <div className="text-center p-4">
                     <FileText className="mx-auto h-12 w-12 text-muted-foreground" />
-                    <p className="mt-2 text-sm text-muted-foreground">{selectedFile.name}</p>
+                    <p className="mt-2 text-sm text-muted-foreground break-all">{selectedFile.name}</p>
                   </div>
                 ) : (
-                   <div className="text-center">
+                   <div className="text-center p-4">
                     <ImageIcon className="mx-auto h-12 w-12 text-muted-foreground" />
                     <p className="mt-2 text-sm text-muted-foreground">Image preview</p>
                   </div>
@@ -230,7 +234,7 @@ export function HearSayClient() {
               </Button>
             </div>
           </div>
-          <div className="p-6 md:p-8 border-b md:border-b-0 md:border-r border-white/10">
+          <div className="p-6 md:p-8 border-b md:border-b-0 md:border-r border-white/10 md:col-span-1 lg:col-span-1">
             <div className="space-y-4 h-full flex flex-col">
               <Label htmlFor="text-input" className="text-lg font-semibold">
                 Your Text
@@ -248,7 +252,7 @@ export function HearSayClient() {
               </p>
             </div>
           </div>
-          <div className="p-6 md:p-8 bg-primary/5 dark:bg-black/10 flex flex-col justify-between">
+          <div className="p-6 md:p-8 bg-primary/5 dark:bg-black/10 flex flex-col justify-between md:col-span-2 lg:col-span-1">
             <div className="space-y-4">
               <Label htmlFor="voice-select" className="text-lg font-semibold">
                 Select a Voice
