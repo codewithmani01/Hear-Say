@@ -143,13 +143,21 @@ export function HearSayClient() {
     try {
       const result = await adjustIntonation({ text, voiceName: selectedVoice });
       setAudioSrc(result.media);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error generating speech:", error);
-      toast({
-        title: "Error",
-        description: "Failed to generate speech. Please try again.",
-        variant: "destructive",
-      });
+      if (error.message && error.message.includes("429")) {
+        toast({
+          title: "Quota Exceeded",
+          description: "You've hit the free tier limit for today. Please try again tomorrow.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to generate speech. Please try again.",
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsLoading(false);
     }
