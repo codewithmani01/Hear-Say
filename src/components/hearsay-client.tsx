@@ -224,10 +224,15 @@ export function HearSayClient() {
     if (!text.trim() || !window.speechSynthesis) {
       return;
     }
-
+    
     const selectedVoice = voices.find(v => v.voiceURI === selectedVoiceURI);
     if (!selectedVoice) {
-        return;
+      toast({
+        title: "No Voice Selected",
+        description: `Please select a voice to speak the text.`,
+        variant: "destructive",
+      });
+      return;
     }
 
     setIsLoading(true);
@@ -267,6 +272,7 @@ export function HearSayClient() {
   };
   
   const canPlay = !!voices.find(v => v.voiceURI === selectedVoiceURI);
+  const selectedVoice = voices.find(v => v.voiceURI === selectedVoiceURI);
 
   return (
     <Card className="w-full max-w-6xl mx-auto shadow-2xl overflow-hidden rounded-2xl border-primary/10 bg-white/10 dark:bg-black/10 backdrop-blur-lg border dark:border-white/10">
@@ -296,7 +302,7 @@ export function HearSayClient() {
                 ) : (
                   <div className="text-center p-4 text-muted-foreground">
                     <ImageIcon className="mx-auto h-12 w-12" />
-                    <p className="mt-2 text-sm">Upload a file to see a preview</p>
+                    <p className="mt-2 text-sm">Upload an image to see a preview</p>
                   </div>
                 )}
               </div>
@@ -331,8 +337,10 @@ export function HearSayClient() {
                     window.speechSynthesis.cancel();
                   }
                   // Simple language detection hint for RTL languages
-                  if (/[\u0600-\u06FF\u0750-\u077F]/.test(e.target.value)) { // Arabic/Urdu script
+                  if (/[\u0600-\u06FF\u0750-\u077F]/.test(e.target.value)) { // Arabic script
                       setTextLanguage('ar');
+                  } else {
+                      setTextLanguage('en-US'); // Default back to english
                   }
                 }}
                 placeholder="Paste your text here..."
@@ -378,7 +386,17 @@ export function HearSayClient() {
                   className="w-full h-14 text-base rounded-lg focus:ring-primary/50 bg-white/10 dark:bg-black/10 backdrop-blur-lg"
                   disabled={voices.length === 0}
                 >
-                  <SelectValue placeholder="Choose a voice" />
+                    <SelectValue>
+                      <div className="flex items-center gap-3">
+                         <div className="bg-primary/10 p-2 rounded-full">
+                          <User className="size-5 text-primary" />
+                        </div>
+                        <div className="flex flex-col items-start">
+                          <p className="font-medium truncate">{selectedVoice?.name ?? 'Choose a voice'}</p>
+                           {selectedVoice && <p className="text-xs text-muted-foreground">{selectedVoice.lang}</p>}
+                        </div>
+                      </div>
+                    </SelectValue>
                 </SelectTrigger>
                 <SelectContent className="bg-white/10 dark:bg-black/10 backdrop-blur-lg">
                   {voices.map((voice) => (
@@ -387,7 +405,7 @@ export function HearSayClient() {
                         <div className="bg-primary/10 p-2 rounded-full">
                           <User className="size-5 text-primary" />
                         </div>
-                        <div>
+                        <div className="flex flex-col items-start">
                           <p className="font-medium">{voice.name}</p>
                           <p className="text-xs text-muted-foreground">
                             {voice.lang}
