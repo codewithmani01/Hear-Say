@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Pause, Play, ScanText, User, FileText, Image as ImageIcon, Languages, StopCircle } from "lucide-react";
+import { Loader2, ScanText, User, FileText, Image as ImageIcon, Languages, StopCircle } from "lucide-react";
 import { useEffect, useRef, useState, useCallback } from "react";
 
 const languages = [
@@ -32,7 +32,6 @@ const languages = [
   { value: "Mandarin Chinese", label: "Mandarin Chinese" },
   { value: "Hindi", label: "Hindi" },
   { value: "Arabic", label: "Arabic" },
-  { value: "Urdu", label: "Urdu" },
   { value: "English", label: "English" },
 ];
 
@@ -119,7 +118,7 @@ export function HearSayClient() {
     if (!selectedFile) {
       toast({
         title: "No File Selected",
-        description: "Please select an image or PDF file to extract text from.",
+        description: "Please select an image file to extract text from.",
         variant: "destructive",
       });
       return;
@@ -132,12 +131,22 @@ export function HearSayClient() {
       reader.onloadend = async () => {
         const fileDataUri = reader.result as string;
         const result = await extractTextFromImage({ imageDataUri: fileDataUri });
-        setText(result.extractedText);
+
+        if (!result.isClear) {
+           toast({
+            title: "Image Not Clear",
+            description: "The uploaded image is not clear enough to read. Please try another image.",
+            variant: "destructive",
+          });
+        } else {
+          setText(result.extractedText);
+          toast({
+            title: "Text Extracted",
+            description: "The text from the file has been loaded into the textbox.",
+          });
+        }
+
         setTextLanguage("en-US"); // Assume extracted text is English
-        toast({
-          title: "Text Extracted",
-          description: "The text from the file has been loaded into the textbox.",
-        });
       };
       reader.onerror = () => {
         throw new Error("Failed to read the file.");
@@ -178,7 +187,6 @@ export function HearSayClient() {
           "Mandarin Chinese": "zh",
           "Hindi": "hi",
           "Arabic": "ar",
-          "Urdu": "ur",
           "English": "en",
       };
       const newLang = langCodeMap[targetLanguage] || 'en';
@@ -214,21 +222,11 @@ export function HearSayClient() {
 
   const handleGenerateSpeech = () => {
     if (!text.trim() || !window.speechSynthesis) {
-      toast({
-        title: "Speech Synthesis not supported",
-        description: "Your browser does not support the Web Speech API.",
-        variant: "destructive",
-      });
       return;
     }
 
     const selectedVoice = voices.find(v => v.voiceURI === selectedVoiceURI);
     if (!selectedVoice) {
-         toast({
-            title: "No Voice Selected",
-            description: "Please select a voice to generate speech.",
-            variant: "destructive",
-        });
         return;
     }
 
@@ -252,12 +250,6 @@ export function HearSayClient() {
     };
     
     utterance.onerror = (event) => {
-        console.error("SpeechSynthesisUtterance.onerror", event);
-        toast({
-            title: "Speech Error",
-            description: `The selected voice (${selectedVoice.name} - ${selectedVoice.lang}) could not speak the text. Try a different voice.`,
-            variant: "destructive",
-        });
         setIsLoading(false);
         setIsPlaying(false);
     };
@@ -283,7 +275,7 @@ export function HearSayClient() {
           HearSay
         </h1>
         <CardDescription className="text-lg text-foreground/80 mt-1">
-          Bring your text to life. Type, select a voice, and listen. Or extract text from an image or PDF.
+          Bring your text to life. Type, select a voice, and listen. Or extract text from an image.
         </CardDescription>
       </CardHeader>
       <CardContent className="p-0">
@@ -291,7 +283,7 @@ export function HearSayClient() {
            <div className="p-6 md:p-8 border-b md:border-b-0 md:border-r border-white/10">
             <div className="space-y-4 h-full flex flex-col">
               <Label htmlFor="image-upload" className="text-lg font-semibold">
-                Upload Image or PDF
+                Upload Image
               </Label>
               <div className="w-full h-48 flex items-center justify-center bg-muted/50 dark:bg-black/20 rounded-lg">
                  {previewUrl ? (
@@ -309,7 +301,7 @@ export function HearSayClient() {
                 )}
               </div>
 
-              <Input id="image-upload" type="file" accept="image/*,application/pdf" onChange={handleFileChange} className="bg-transparent" />
+              <Input id="image-upload" type="file" accept="image/*" onChange={handleFileChange} className="bg-transparent" />
               <Button onClick={handleExtractText} disabled={isExtracting || !selectedFile} className="w-full">
                 {isExtracting ? (
                   <>
@@ -340,7 +332,7 @@ export function HearSayClient() {
                   }
                   // Simple language detection hint for RTL languages
                   if (/[\u0600-\u06FF\u0750-\u077F]/.test(e.target.value)) { // Arabic/Urdu script
-                      setTextLanguage('ur');
+                      setTextLanguage('ar');
                   }
                 }}
                 placeholder="Paste your text here..."
@@ -360,10 +352,10 @@ export function HearSayClient() {
                 </Label>
                 <div className="flex gap-2">
                   <Select value={targetLanguage} onValueChange={setTargetLanguage}>
-                    <SelectTrigger id="language-select" className="w-full bg-transparent">
+                    <SelectTrigger id="language-select" className="w-full bg-white/10 dark:bg-black/10 backdrop-blur-lg">
                       <SelectValue placeholder="Choose a language" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-white/10 dark:bg-black/10 backdrop-blur-lg">
                       {languages.map((lang) => (
                         <SelectItem key={lang.value} value={lang.value}>
                           {lang.label}
@@ -383,12 +375,12 @@ export function HearSayClient() {
               <Select value={selectedVoiceURI} onValueChange={setSelectedVoiceURI}>
                 <SelectTrigger
                   id="voice-select"
-                  className="w-full h-14 text-base rounded-lg focus:ring-primary/50 bg-transparent"
+                  className="w-full h-14 text-base rounded-lg focus:ring-primary/50 bg-white/10 dark:bg-black/10 backdrop-blur-lg"
                   disabled={voices.length === 0}
                 >
                   <SelectValue placeholder="Choose a voice" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-white/10 dark:bg-black/10 backdrop-blur-lg">
                   {voices.map((voice) => (
                     <SelectItem key={voice.voiceURI} value={voice.voiceURI}>
                       <div className="flex items-center gap-3 py-1">
