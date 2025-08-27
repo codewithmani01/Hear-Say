@@ -1,6 +1,7 @@
 "use client";
 
 import { adjustIntonation } from "@/ai/flows/adjust-intonation";
+import { extractTextFromImage } from "@/ai/flows/extract-text-from-image";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -9,6 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -19,7 +21,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Pause, Play, User } from "lucide-react";
+import { Loader2, Pause, Play, ScanText, User } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 const voices = [
@@ -67,10 +69,59 @@ export function HearSayClient() {
   );
   const [selectedVoice, setSelectedVoice] = useState(voices[0].id);
   const [isLoading, setIsLoading] = useState(false);
+  const [isExtracting, setIsExtracting] = useState(false);
   const [audioSrc, setAudioSrc] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   const { toast } = useToast();
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setSelectedFile(file);
+      setPreviewUrl(URL.createObjectURL(file));
+    }
+  };
+
+  const handleExtractText = async () => {
+    if (!selectedFile) {
+      toast({
+        title: "No Image Selected",
+        description: "Please select an image file to extract text from.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsExtracting(true);
+    try {
+      const reader = new FileReader();
+      reader.readAsDataURL(selectedFile);
+      reader.onloadend = async () => {
+        const imageDataUri = reader.result as string;
+        const result = await extractTextFromImage({ imageDataUri });
+        setText(result.extractedText);
+        toast({
+          title: "Text Extracted",
+          description: "The text from the image has been loaded into the textbox.",
+        });
+      };
+      reader.onerror = () => {
+        throw new Error("Failed to read the image file.");
+      }
+    } catch (error) {
+      console.error("Error extracting text:", error);
+      toast({
+        title: "Error",
+        description: "Failed to extract text from the image. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsExtracting(false);
+    }
+  };
 
   const handleGenerateSpeech = async () => {
     if (!text.trim()) {
@@ -134,17 +185,41 @@ export function HearSayClient() {
   };
 
   return (
-    <Card className="w-full max-w-4xl mx-auto shadow-2xl overflow-hidden rounded-2xl border-primary/10">
+    <Card className="w-full max-w-6xl mx-auto shadow-2xl overflow-hidden rounded-2xl border-primary/10">
       <CardHeader className="text-center bg-card/50 p-6 md:p-8">
         <h1 className="text-4xl font-headline font-bold text-primary tracking-tight">
           HearSay
         </h1>
         <CardDescription className="text-lg text-foreground/80 mt-1">
-          Bring your text to life. Type, select a voice, and listen.
+          Bring your text to life. Type, select a voice, and listen. Or extract text from an image.
         </CardDescription>
       </CardHeader>
       <CardContent className="p-0">
-        <div className="grid md:grid-cols-2">
+        <div className="grid md:grid-cols-3">
+           <div className="p-6 md:p-8 border-b md:border-b-0 md:border-r">
+            <div className="space-y-4 h-full flex flex-col">
+              <Label htmlFor="image-upload" className="text-lg font-semibold">
+                Upload Image
+              </Label>
+              {previewUrl && (
+                <img src={previewUrl} alt="Preview" className="w-full h-48 object-cover rounded-lg" />
+              )}
+              <Input id="image-upload" type="file" accept="image/*" onChange={handleFileChange} />
+              <Button onClick={handleExtractText} disabled={isExtracting || !selectedFile} className="w-full">
+                {isExtracting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Extracting...
+                  </>
+                ) : (
+                  <>
+                    <ScanText className="mr-2 h-4 w-4" />
+                    Extract Text
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
           <div className="p-6 md:p-8 border-b md:border-b-0 md:border-r">
             <div className="space-y-4 h-full flex flex-col">
               <Label htmlFor="text-input" className="text-lg font-semibold">
