@@ -62,9 +62,14 @@ export function HearSayClient() {
     const langPrefix = lang.split('-')[0];
     bestVoice = availableVoices.find(v => v.lang.startsWith(langPrefix + "-"));
     if (bestVoice) return bestVoice;
+    
+    // Look for any voice that supports the language prefix
+    bestVoice = availableVoices.find(v => v.lang.startsWith(langPrefix));
+    if (bestVoice) return bestVoice;
+
 
     // Default to first available voice if no match is found
-    return availableVoices[0] || null;
+    return null;
   }, []);
 
   useEffect(() => {
@@ -72,7 +77,7 @@ export function HearSayClient() {
       const availableVoices = window.speechSynthesis.getVoices();
       setVoices(availableVoices);
       if (availableVoices.length > 0 && !selectedVoiceURI) {
-        const defaultVoice = findBestVoiceForLanguage(textLanguage, availableVoices);
+        const defaultVoice = findBestVoiceForLanguage(textLanguage, availableVoices) || availableVoices.find(v => v.default);
         if (defaultVoice) {
           setSelectedVoiceURI(defaultVoice.voiceURI);
         }
@@ -181,7 +186,7 @@ export function HearSayClient() {
         setSelectedVoiceURI(undefined);
         toast({
             title: "No Voice Found",
-            description: `No voice available for ${targetLanguage}. Playback may not work.`,
+            description: `No voice available for ${targetLanguage}. Playback will be disabled.`,
             variant: "destructive",
         });
       }
@@ -245,7 +250,7 @@ export function HearSayClient() {
         console.error("SpeechSynthesisUtterance.onerror", event);
         toast({
             title: "Speech Error",
-            description: `An error occurred. Make sure the selected voice (${selectedVoice.lang}) can speak the language of the text.`,
+            description: `The selected voice (${selectedVoice.name} - ${selectedVoice.lang}) could not speak the text. Try a different voice.`,
             variant: "destructive",
         });
         setIsLoading(false);
@@ -256,6 +261,7 @@ export function HearSayClient() {
   };
 
   const togglePlayPause = () => {
+    if (!canPlay) return;
     if (isPlaying) {
       window.speechSynthesis.pause();
       setIsPlaying(false);
