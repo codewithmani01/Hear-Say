@@ -210,12 +210,7 @@ export function HearSayClient() {
                     <FileText className="mx-auto h-12 w-12 text-muted-foreground" />
                     <p className="mt-2 text-sm text-muted-foreground break-all">{selectedFile.name}</p>
                   </div>
-                ) : (
-                   <div className="text-center p-4">
-                    <ImageIcon className="mx-auto h-12 w-12 text-muted-foreground" />
-                    <p className="mt-2 text-sm text-muted-foreground">Image preview</p>
-                  </div>
-                )}
+                ) : null}
               </div>
 
               <Input id="image-upload" type="file" accept="image/*,application/pdf" onChange={handleFileChange} className="bg-transparent" />
