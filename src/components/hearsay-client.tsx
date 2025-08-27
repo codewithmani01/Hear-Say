@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Pause, Play, ScanText, User } from "lucide-react";
+import { Loader2, Pause, Play, ScanText, User, FileText, Image as ImageIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 const voices = [
@@ -81,15 +81,19 @@ export function HearSayClient() {
     const file = event.target.files?.[0];
     if (file) {
       setSelectedFile(file);
-      setPreviewUrl(URL.createObjectURL(file));
+      if (file.type.startsWith('image/')) {
+        setPreviewUrl(URL.createObjectURL(file));
+      } else {
+        setPreviewUrl(null);
+      }
     }
   };
 
   const handleExtractText = async () => {
     if (!selectedFile) {
       toast({
-        title: "No Image Selected",
-        description: "Please select an image file to extract text from.",
+        title: "No File Selected",
+        description: "Please select an image or PDF file to extract text from.",
         variant: "destructive",
       });
       return;
@@ -100,22 +104,23 @@ export function HearSayClient() {
       const reader = new FileReader();
       reader.readAsDataURL(selectedFile);
       reader.onloadend = async () => {
-        const imageDataUri = reader.result as string;
-        const result = await extractTextFromImage({ imageDataUri });
+        const fileDataUri = reader.result as string;
+        // The flow can handle different mime types, so we just pass the data URI.
+        const result = await extractTextFromImage({ imageDataUri: fileDataUri });
         setText(result.extractedText);
         toast({
           title: "Text Extracted",
-          description: "The text from the image has been loaded into the textbox.",
+          description: "The text from the file has been loaded into the textbox.",
         });
       };
       reader.onerror = () => {
-        throw new Error("Failed to read the image file.");
+        throw new Error("Failed to read the file.");
       }
     } catch (error) {
       console.error("Error extracting text:", error);
       toast({
         title: "Error",
-        description: "Failed to extract text from the image. Please try again.",
+        description: "Failed to extract text from the file. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -191,7 +196,7 @@ export function HearSayClient() {
           HearSay
         </h1>
         <CardDescription className="text-lg text-foreground/80 mt-1">
-          Bring your text to life. Type, select a voice, and listen. Or extract text from an image.
+          Bring your text to life. Type, select a voice, and listen. Or extract text from an image or PDF.
         </CardDescription>
       </CardHeader>
       <CardContent className="p-0">
@@ -199,12 +204,25 @@ export function HearSayClient() {
            <div className="p-6 md:p-8 border-b md:border-b-0 md:border-r">
             <div className="space-y-4 h-full flex flex-col">
               <Label htmlFor="image-upload" className="text-lg font-semibold">
-                Upload Image
+                Upload Image or PDF
               </Label>
-              {previewUrl && (
-                <img src={previewUrl} alt="Preview" className="w-full h-48 object-cover rounded-lg" />
-              )}
-              <Input id="image-upload" type="file" accept="image/*" onChange={handleFileChange} />
+              <div className="w-full h-48 flex items-center justify-center bg-muted rounded-lg">
+                {previewUrl ? (
+                  <img src={previewUrl} alt="Preview" className="w-full h-full object-cover rounded-lg" />
+                ) : selectedFile ? (
+                  <div className="text-center">
+                    <FileText className="mx-auto h-12 w-12 text-muted-foreground" />
+                    <p className="mt-2 text-sm text-muted-foreground">{selectedFile.name}</p>
+                  </div>
+                ) : (
+                   <div className="text-center">
+                    <ImageIcon className="mx-auto h-12 w-12 text-muted-foreground" />
+                    <p className="mt-2 text-sm text-muted-foreground">Image preview</p>
+                  </div>
+                )}
+              </div>
+
+              <Input id="image-upload" type="file" accept="image/*,application/pdf" onChange={handleFileChange} />
               <Button onClick={handleExtractText} disabled={isExtracting || !selectedFile} className="w-full">
                 {isExtracting ? (
                   <>

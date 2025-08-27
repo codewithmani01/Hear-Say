@@ -1,9 +1,9 @@
 'use server';
 
 /**
- * @fileOverview This file defines a Genkit flow for extracting text from an image.
+ * @fileOverview This file defines a Genkit flow for extracting text from an image or other document formats.
  *
- * - extractTextFromImage - A function that extracts text from a given image.
+ * - extractTextFromImage - A function that extracts text from a given image or document.
  * - ExtractTextFromImageInput - The input type for the extractTextFromImage function.
  * - ExtractTextFromImageOutput - The return type for the extractTextFromImage function.
  */
@@ -15,13 +15,13 @@ const ExtractTextFromImageInputSchema = z.object({
   imageDataUri: z
     .string()
     .describe(
-      "An image containing text, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
+      "A file (image, PDF, etc.) containing text, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
     ),
 });
 export type ExtractTextFromImageInput = z.infer<typeof ExtractTextFromImageInputSchema>;
 
 const ExtractTextFromImageOutputSchema = z.object({
-  extractedText: z.string().describe('The text extracted from the image.'),
+  extractedText: z.string().describe('The text extracted from the document.'),
 });
 export type ExtractTextFromImageOutput = z.infer<typeof ExtractTextFromImageOutputSchema>;
 
@@ -33,9 +33,9 @@ const prompt = ai.definePrompt({
   name: 'extractTextFromImagePrompt',
   input: {schema: ExtractTextFromImageInputSchema},
   output: {schema: ExtractTextFromImageOutputSchema},
-  prompt: `You are an expert in optical character recognition (OCR). Your task is to extract all text from the given image accurately.
+  prompt: `You are an expert in optical character recognition (OCR). Your task is to extract all text from the given document accurately.
 
-Image: {{media url=imageDataUri}}
+Document: {{media url=imageDataUri}}
 
 Extract the text and provide it in the 'extractedText' field.`,
 });
