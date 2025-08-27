@@ -58,13 +58,13 @@ export function HearSayClient() {
     let bestVoice = availableVoices.find(v => v.lang === lang);
     if (bestVoice) return bestVoice;
 
-    // Language match "en"
+    // Language prefix match "en-"
     const langPrefix = lang.split('-')[0];
     bestVoice = availableVoices.find(v => v.lang.startsWith(langPrefix + "-"));
     if (bestVoice) return bestVoice;
     
-    // Look for any voice that supports the language prefix
-    bestVoice = availableVoices.find(v => v.lang.startsWith(langPrefix));
+    // Base language match "en"
+    bestVoice = availableVoices.find(v => v.lang === langPrefix);
     if (bestVoice) return bestVoice;
 
     // Default to first available voice if no match is found
@@ -335,11 +335,12 @@ export function HearSayClient() {
                 value={text}
                 onChange={(e) => {
                   setText(e.target.value);
-                  if(isPlaying) window.speechSynthesis.cancel();
-                  if (/[\u0600-\u06FF]/.test(e.target.value)) {
+                  if (isPlaying) {
+                    window.speechSynthesis.cancel();
+                  }
+                  // Simple language detection hint for RTL languages
+                  if (/[\u0600-\u06FF\u0750-\u077F]/.test(e.target.value)) { // Arabic/Urdu script
                       setTextLanguage('ur');
-                  } else if (e.target.value.trim().length > 0) {
-                      setTextLanguage('en');
                   }
                 }}
                 placeholder="Paste your text here..."
