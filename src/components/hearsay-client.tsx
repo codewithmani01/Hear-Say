@@ -2,6 +2,7 @@
 
 import { extractTextFromImage } from "@/ai/flows/extract-text-from-image";
 import { translateText } from "@/ai/flows/translate-text";
+import { correctGrammar } from "@/ai/flows/correct-grammar";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -21,10 +22,11 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, ScanText, User, FileText, Image as ImageIcon, Languages, StopCircle } from "lucide-react";
+import { Loader2, ScanText, User, FileText, Image as ImageIcon, Languages, StopCircle, SpellCheck } from "lucide-react";
 import { useEffect, useRef, useState, useCallback } from "react";
 
 const languages = [
+  { value: "English", label: "English" },
   { value: "Spanish", label: "Spanish" },
   { value: "French", label: "French" },
   { value: "German", label: "German" },
@@ -32,7 +34,6 @@ const languages = [
   { value: "Mandarin Chinese", label: "Mandarin Chinese" },
   { value: "Hindi", label: "Hindi" },
   { value: "Arabic", label: "Arabic" },
-  { value: "English", label: "English" },
 ];
 
 export function HearSayClient() {
@@ -44,10 +45,11 @@ export function HearSayClient() {
   const [isLoading, setIsLoading] = useState(false);
   const [isExtracting, setIsExtracting] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
+  const [isCorrectingGrammar, setIsCorrectingGrammar] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [targetLanguage, setTargetLanguage] = useState("Spanish");
+  const [targetLanguage, setTargetLanguage] = useState("English");
   const [textLanguage, setTextLanguage] = useState("en-US");
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   const { toast } = useToast();
@@ -197,11 +199,6 @@ export function HearSayClient() {
         setSelectedVoiceURI(bestVoice.voiceURI);
       } else {
         setSelectedVoiceURI(undefined);
-        toast({
-            title: "No Voice Found",
-            description: `No voice available for ${targetLanguage}. Playback will be disabled.`,
-            variant: "destructive",
-        });
       }
 
       toast({
@@ -220,6 +217,36 @@ export function HearSayClient() {
     }
   };
 
+  const handleCorrectGrammar = async () => {
+    if (!text.trim()) {
+      toast({
+        title: "No Text to Correct",
+        description: "Please enter some text to correct.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsCorrectingGrammar(true);
+    try {
+      const result = await correctGrammar({ text });
+      setText(result.correctedText);
+      toast({
+        title: "Grammar Corrected",
+        description: "The text has been updated with grammar corrections.",
+      });
+    } catch (error) {
+      console.error("Error correcting grammar:", error);
+      toast({
+        title: "Error",
+        description: "Failed to correct the grammar. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsCorrectingGrammar(false);
+    }
+  }
+
   const handleGenerateSpeech = () => {
     if (!text.trim() || !window.speechSynthesis) {
       return;
@@ -227,11 +254,6 @@ export function HearSayClient() {
     
     const selectedVoice = voices.find(v => v.voiceURI === selectedVoiceURI);
     if (!selectedVoice) {
-      toast({
-        title: "No Voice Selected",
-        description: `Please select a voice to speak the text.`,
-        variant: "destructive",
-      });
       return;
     }
 
@@ -325,9 +347,15 @@ export function HearSayClient() {
           </div>
           <div className="p-6 md:p-8 border-b md:border-b-0 md:border-r border-white/10 md:col-span-1 lg:col-span-1">
             <div className="space-y-4 h-full flex flex-col">
-              <Label htmlFor="text-input" className="text-lg font-semibold">
-                Your Text
-              </Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="text-input" className="text-lg font-semibold">
+                  Your Text
+                </Label>
+                <Button onClick={handleCorrectGrammar} disabled={isCorrectingGrammar} variant="outline" size="sm" className="bg-transparent">
+                  {isCorrectingGrammar ? <Loader2 className="h-4 w-4 animate-spin" /> : <SpellCheck className="h-4 w-4" />}
+                  <span className="ml-2">Correct Grammar</span>
+                </Button>
+              </div>
               <Textarea
                 id="text-input"
                 value={text}
@@ -391,7 +419,7 @@ export function HearSayClient() {
                          <div className="bg-primary/10 p-2 rounded-full">
                           <User className="size-5 text-primary" />
                         </div>
-                        <div className="flex flex-col items-start">
+                        <div className="flex flex-col items-start text-left">
                           <p className="font-medium truncate">{selectedVoice?.name ?? 'Choose a voice'}</p>
                            {selectedVoice && <p className="text-xs text-muted-foreground">{selectedVoice.lang}</p>}
                         </div>
