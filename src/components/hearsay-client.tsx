@@ -25,42 +25,35 @@ import { Loader2, Pause, Play, ScanText, User, FileText, Image as ImageIcon } fr
 import { useEffect, useRef, useState } from "react";
 
 const voices = [
-  {
-    id: "algenib",
-    name: "Algenib",
-    gender: "Female",
-    description: "Clear and professional",
-  },
-  {
-    id: "gacrux",
-    name: "Gacrux",
-    gender: "Male",
-    description: "Deep and resonant",
-  },
-  {
-    id: "umbriel",
-    name: "Umbriel",
-    gender: "Male",
-    description: "Warm and friendly",
-  },
-  {
-    id: "vindemiatrix",
-    name: "Vindemiatrix",
-    gender: "Female",
-    description: "Bright and energetic",
-  },
-  {
-    id: "despina",
-    name: "Despina",
-    gender: "Female",
-    description: "Calm and soothing",
-  },
-  {
-    id: "zubenelgenubi",
-    name: "Zubenelgenubi",
-    gender: "Male",
-    description: "Authoritative and crisp",
-  },
+    { id: 'algenib', name: 'Algenib', gender: 'Female', description: 'Clear and professional' },
+    { id: 'gacrux', name: 'Gacrux', gender: 'Male', description: 'Deep and resonant' },
+    { id: 'umbriel', name: 'Umbriel', gender: 'Male', description: 'Warm and friendly' },
+    { id: 'vindemiatrix', name: 'Vindemiatrix', gender: 'Female', description: 'Bright and energetic' },
+    { id: 'despina', name: 'Despina', gender: 'Female', description: 'Calm and soothing' },
+    { id: 'zubenelgenubi', name: 'Zubenelgenubi', gender: 'Male', description: 'Authoritative and crisp' },
+    { id: 'achernar', name: 'Achernar', gender: 'Male', description: 'Smooth and melodic' },
+    { id: 'achird', name: 'Achird', gender: 'Female', description: 'Gentle and kind' },
+    { id: 'algieba', name: 'Algieba', gender: 'Male', description: 'Powerful and commanding' },
+    { id: 'alnilam', name: 'Alnilam', gender: 'Female', description: 'Graceful and elegant' },
+    { id: 'aoede', name: 'Aoede', gender: 'Female', description: 'Lively and animated' },
+    { id: 'autonoe', name: 'Autonoe', gender: 'Female', description: 'Robotic and futuristic' },
+    { id: 'callirrhoe', name: 'Callirrhoe', gender: 'Female', description: 'Sweet and caring' },
+    { id: 'charon', name: 'Charon', gender: 'Male', description: 'Mysterious and deep' },
+    { id: 'enceladus', name: 'Enceladus', gender: 'Male', description: 'Heroic and epic' },
+    { id: 'erinome', name: 'Erinome', gender: 'Female', description: 'Confident and clear' },
+    { id: 'fenrir', name: 'Fenrir', gender: 'Male', description: 'Gruff and strong' },
+    { id: 'iapetus', name: 'Iapetus', gender: 'Male', description: 'Wise and old' },
+    { id: 'kore', name: 'Kore', gender: 'Female', description: 'Youthful and playful' },
+    { id: 'laomedeia', name: 'Laomedeia', gender: 'Female', description: 'Sophisticated and calm' },
+    { id: 'leda', name: 'Leda', gender: 'Female', description: 'Storyteller' },
+    { id: 'puck', name: 'Puck', gender: 'Male', description: 'Mischievous and fun' },
+    { id: 'pulcherrima', name: 'Pulcherrima', gender: 'Female', description: 'Elegant and refined' },
+    { id: 'rasalgethi', name: 'Rasalgethi', gender: 'Male', description: 'Regal and noble' },
+    { id: 'sadachbia', name: 'Sadachbia', gender: 'Female', description: 'Enthusiastic and upbeat' },
+    { id: 'sadaltager', name: 'Sadaltager', gender: 'Male', description: 'Friendly and approachable' },
+    { id: 'schedar', name: 'Schedar', gender: 'Female', description: 'Warm and motherly' },
+    { id: 'sulafat', name: 'Sulafat', gender: 'Male', description: 'Calm and reassuring' },
+    { id: 'zephyr', name: 'Zephyr', gender: 'Male', description: 'Light and airy' },
 ];
 
 export function HearSayClient() {
@@ -105,7 +98,6 @@ export function HearSayClient() {
       reader.readAsDataURL(selectedFile);
       reader.onloadend = async () => {
         const fileDataUri = reader.result as string;
-        // The flow can handle different mime types, so we just pass the data URI.
         const result = await extractTextFromImage({ imageDataUri: fileDataUri });
         setText(result.extractedText);
         toast({
@@ -190,8 +182,8 @@ export function HearSayClient() {
   };
 
   return (
-    <Card className="w-full max-w-6xl mx-auto shadow-2xl overflow-hidden rounded-2xl border-primary/10">
-      <CardHeader className="text-center bg-card/50 p-6 md:p-8">
+    <Card className="w-full max-w-6xl mx-auto shadow-2xl overflow-hidden rounded-2xl border-primary/10 bg-white/10 dark:bg-black/10 backdrop-blur-lg border dark:border-white/10">
+      <CardHeader className="text-center bg-transparent p-6 md:p-8">
         <h1 className="text-4xl font-headline font-bold text-primary tracking-tight">
           HearSay
         </h1>
@@ -201,12 +193,12 @@ export function HearSayClient() {
       </CardHeader>
       <CardContent className="p-0">
         <div className="grid md:grid-cols-3">
-           <div className="p-6 md:p-8 border-b md:border-b-0 md:border-r">
+           <div className="p-6 md:p-8 border-b md:border-b-0 md:border-r border-white/10">
             <div className="space-y-4 h-full flex flex-col">
               <Label htmlFor="image-upload" className="text-lg font-semibold">
                 Upload Image or PDF
               </Label>
-              <div className="w-full h-48 flex items-center justify-center bg-muted rounded-lg">
+              <div className="w-full h-48 flex items-center justify-center bg-muted/50 dark:bg-black/20 rounded-lg">
                 {previewUrl ? (
                   <img src={previewUrl} alt="Preview" className="w-full h-full object-cover rounded-lg" />
                 ) : selectedFile ? (
@@ -222,7 +214,7 @@ export function HearSayClient() {
                 )}
               </div>
 
-              <Input id="image-upload" type="file" accept="image/*,application/pdf" onChange={handleFileChange} />
+              <Input id="image-upload" type="file" accept="image/*,application/pdf" onChange={handleFileChange} className="bg-transparent" />
               <Button onClick={handleExtractText} disabled={isExtracting || !selectedFile} className="w-full">
                 {isExtracting ? (
                   <>
@@ -238,7 +230,7 @@ export function HearSayClient() {
               </Button>
             </div>
           </div>
-          <div className="p-6 md:p-8 border-b md:border-b-0 md:border-r">
+          <div className="p-6 md:p-8 border-b md:border-b-0 md:border-r border-white/10">
             <div className="space-y-4 h-full flex flex-col">
               <Label htmlFor="text-input" className="text-lg font-semibold">
                 Your Text
@@ -248,7 +240,7 @@ export function HearSayClient() {
                 value={text}
                 onChange={(e) => setText(e.target.value)}
                 placeholder="Paste your text here..."
-                className="flex-grow text-base resize-none rounded-lg focus-visible:ring-primary/50"
+                className="flex-grow text-base resize-none rounded-lg focus-visible:ring-primary/50 bg-transparent"
                 rows={12}
               />
               <p className="text-sm text-muted-foreground text-right">
@@ -256,7 +248,7 @@ export function HearSayClient() {
               </p>
             </div>
           </div>
-          <div className="p-6 md:p-8 bg-primary/5 flex flex-col justify-between">
+          <div className="p-6 md:p-8 bg-primary/5 dark:bg-black/10 flex flex-col justify-between">
             <div className="space-y-4">
               <Label htmlFor="voice-select" className="text-lg font-semibold">
                 Select a Voice
@@ -264,7 +256,7 @@ export function HearSayClient() {
               <Select value={selectedVoice} onValueChange={setSelectedVoice}>
                 <SelectTrigger
                   id="voice-select"
-                  className="w-full h-14 text-base rounded-lg focus:ring-primary/50"
+                  className="w-full h-14 text-base rounded-lg focus:ring-primary/50 bg-transparent"
                 >
                   <SelectValue placeholder="Choose a voice" />
                 </SelectTrigger>
@@ -291,7 +283,7 @@ export function HearSayClient() {
               <Button
                 onClick={handleGenerateSpeech}
                 disabled={isLoading || !text.trim()}
-                className="w-full h-14 text-lg font-bold rounded-lg transition-all duration-300 hover:shadow-lg hover:scale-105 active:scale-100"
+                className="w-full h-14 text-lg font-bold rounded-lg transition-all duration-300 hover:shadow-lg hover:scale-105 active:scale-100 bg-primary/90 hover:bg-primary"
                 size="lg"
               >
                 {isLoading ? (
