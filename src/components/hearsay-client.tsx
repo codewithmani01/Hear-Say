@@ -57,7 +57,9 @@ export function HearSayClient() {
       const availableVoices = window.speechSynthesis.getVoices();
       setVoices(availableVoices);
       if (availableVoices.length > 0) {
-        setSelectedVoiceURI(availableVoices[0].voiceURI);
+        // Try to find a default english voice, otherwise use the first available.
+        const defaultVoice = availableVoices.find(v => v.lang.startsWith("en-US")) || availableVoices[0];
+        setSelectedVoiceURI(defaultVoice.voiceURI);
       }
     };
 
@@ -174,6 +176,7 @@ export function HearSayClient() {
     const selectedVoice = voices.find(v => v.voiceURI === selectedVoiceURI);
     if (selectedVoice) {
       utterance.voice = selectedVoice;
+      utterance.lang = selectedVoice.lang;
     }
 
     utterance.onstart = () => {
@@ -375,3 +378,5 @@ export function HearSayClient() {
     </Card>
   );
 }
+
+    
