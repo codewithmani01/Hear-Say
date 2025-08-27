@@ -32,6 +32,8 @@ const languages = [
   { value: "Mandarin Chinese", label: "Mandarin Chinese" },
   { value: "Hindi", label: "Hindi" },
   { value: "Arabic", label: "Arabic" },
+  { value: "Urdu", label: "Urdu" },
+  { value: "English", label: "English" },
 ];
 
 export function HearSayClient() {
