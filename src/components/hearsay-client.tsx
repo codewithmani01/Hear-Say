@@ -1,6 +1,7 @@
 "use client";
 
 import { extractTextFromImage } from "@/ai/flows/extract-text-from-image";
+import { translateText } from "@/ai/flows/translate-text";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -20,8 +21,18 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Pause, Play, ScanText, User, FileText, Image as ImageIcon, Volume2 } from "lucide-react";
+import { Loader2, Pause, Play, ScanText, User, FileText, Image as ImageIcon, Languages } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+
+const languages = [
+  { value: "Spanish", label: "Spanish" },
+  { value: "French", label: "French" },
+  { value: "German", label: "German" },
+  { value: "Japanese", label: "Japanese" },
+  { value: "Mandarin Chinese", label: "Mandarin Chinese" },
+  { value: "Hindi", label: "Hindi" },
+  { value: "Arabic", label: "Arabic" },
+];
 
 export function HearSayClient() {
   const [text, setText] = useState(
@@ -31,9 +42,11 @@ export function HearSayClient() {
   const [selectedVoiceURI, setSelectedVoiceURI] = useState<string | undefined>();
   const [isLoading, setIsLoading] = useState(false);
   const [isExtracting, setIsExtracting] = useState(false);
+  const [isTranslating, setIsTranslating] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [targetLanguage, setTargetLanguage] = useState("Spanish");
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   const { toast } = useToast();
 
@@ -46,9 +59,8 @@ export function HearSayClient() {
       }
     };
 
-    // speech.getVoices() is sometimes async, so we need to listen for the voiceschanged event.
     window.speechSynthesis.onvoiceschanged = handleVoicesChanged;
-    handleVoicesChanged(); // Also call it directly in case voices are already available.
+    handleVoicesChanged();
 
     return () => {
       window.speechSynthesis.onvoiceschanged = null;
@@ -111,6 +123,36 @@ export function HearSayClient() {
     }
   };
 
+  const handleTranslate = async () => {
+    if (!text.trim()) {
+      toast({
+        title: "No Text to Translate",
+        description: "Please enter some text to translate.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsTranslating(true);
+    try {
+      const result = await translateText({ text, targetLanguage });
+      setText(result.translatedText);
+      toast({
+        title: "Text Translated",
+        description: `The text has been translated to ${targetLanguage}.`,
+      });
+    } catch (error) {
+      console.error("Error translating text:", error);
+      toast({
+        title: "Error",
+        description: "Failed to translate the text. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsTranslating(false);
+    }
+  };
+
   const handleGenerateSpeech = () => {
     if (!text.trim() || !window.speechSynthesis) {
       toast({
@@ -159,14 +201,15 @@ export function HearSayClient() {
   const togglePlayPause = () => {
     if (isPlaying) {
       window.speechSynthesis.pause();
+      setIsPlaying(false);
     } else {
       if (utteranceRef.current && window.speechSynthesis.paused) {
           window.speechSynthesis.resume();
+          setIsPlaying(true);
       } else {
           handleGenerateSpeech();
       }
     }
-    setIsPlaying(!isPlaying);
   };
 
   return (
@@ -187,7 +230,7 @@ export function HearSayClient() {
                 Upload Image or PDF
               </Label>
               <div className="w-full h-48 flex items-center justify-center bg-muted/50 dark:bg-black/20 rounded-lg">
-                {previewUrl ? (
+                 {previewUrl ? (
                   <img src={previewUrl} alt="Preview" className="w-full h-full object-cover rounded-lg" />
                 ) : selectedFile ? (
                   <div className="text-center p-4">
@@ -238,7 +281,30 @@ export function HearSayClient() {
           </div>
           <div className="p-6 md:p-8 bg-primary/5 dark:bg-black/10 flex flex-col justify-between md:col-span-2 lg:col-span-1">
             <div className="space-y-4">
-              <Label htmlFor="voice-select" className="text-lg font-semibold">
+              <div className="space-y-4">
+                <Label htmlFor="language-select" className="text-lg font-semibold">
+                  Translate
+                </Label>
+                <div className="flex gap-2">
+                  <Select value={targetLanguage} onValueChange={setTargetLanguage}>
+                    <SelectTrigger id="language-select" className="w-full bg-transparent">
+                      <SelectValue placeholder="Choose a language" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {languages.map((lang) => (
+                        <SelectItem key={lang.value} value={lang.value}>
+                          {lang.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button onClick={handleTranslate} disabled={isTranslating} variant="outline" className="bg-transparent">
+                    {isTranslating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Languages className="h-4 w-4" />}
+                  </Button>
+                </div>
+              </div>
+
+              <Label htmlFor="voice-select" className="text-lg font-semibold mt-4 block">
                 Select a Voice
               </Label>
               <Select value={selectedVoiceURI} onValueChange={setSelectedVoiceURI}>
@@ -268,6 +334,23 @@ export function HearSayClient() {
               </Select>
             </div>
             <div className="mt-8 flex flex-col items-center gap-4">
+               <div className="flex items-center justify-center w-full gap-4">
+                <Button
+                    onClick={togglePlayPause}
+                    variant="outline"
+                    size="icon"
+                    className="w-20 h-20 rounded-full border-2 border-primary/20 bg-background hover:bg-primary/10"
+                    aria-label={isPlaying ? "Pause audio" : "Play audio"}
+                    disabled={isLoading || !text.trim()}
+                  >
+                    {isPlaying ? (
+                      <Pause className="h-8 w-8" />
+                    ) : (
+                      <Play className="h-8 w-8 ml-1" />
+                    )}
+                  </Button>
+              </div>
+
               <Button
                 onClick={handleGenerateSpeech}
                 disabled={isLoading || !text.trim() || isPlaying}
@@ -283,24 +366,6 @@ export function HearSayClient() {
                   "Hear It Now"
                 )}
               </Button>
-              {isPlaying && (
-                <div className="w-full flex justify-center mt-4">
-                  <Button
-                    onClick={togglePlayPause}
-                    variant="outline"
-                    size="icon"
-                    className="w-20 h-20 rounded-full border-2 border-primary/20 bg-background hover:bg-primary/10 data-[state=playing]:bg-primary data-[state=playing]:text-primary-foreground"
-                    data-state={isPlaying ? "playing" : "paused"}
-                    aria-label={isPlaying ? "Pause audio" : "Play audio"}
-                  >
-                    {isPlaying ? (
-                      <Pause className="h-8 w-8" />
-                    ) : (
-                      <Play className="h-8 w-8 ml-1" />
-                    )}
-                  </Button>
-                </div>
-              )}
             </div>
           </div>
         </div>
