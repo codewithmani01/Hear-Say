@@ -22,7 +22,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Pause, Play, ScanText, User, FileText, Image as ImageIcon, Languages } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 
 const languages = [
   { value: "Spanish", label: "Spanish" },
@@ -49,28 +49,44 @@ export function HearSayClient() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [targetLanguage, setTargetLanguage] = useState("Spanish");
+  const [textLanguage, setTextLanguage] = useState("en-US");
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   const { toast } = useToast();
+
+  const findBestVoiceForLanguage = useCallback((lang: string, availableVoices: SpeechSynthesisVoice[]) => {
+    // Exact match "en-US"
+    let bestVoice = availableVoices.find(v => v.lang === lang);
+    if (bestVoice) return bestVoice;
+
+    // Language match "en"
+    const langPrefix = lang.split('-')[0];
+    bestVoice = availableVoices.find(v => v.lang.startsWith(langPrefix + "-"));
+    if (bestVoice) return bestVoice;
+
+    // Default to first available voice if no match is found
+    return availableVoices[0] || null;
+  }, []);
 
   useEffect(() => {
     const handleVoicesChanged = () => {
       const availableVoices = window.speechSynthesis.getVoices();
       setVoices(availableVoices);
-      if (availableVoices.length > 0) {
-        // Try to find a default english voice, otherwise use the first available.
-        const defaultVoice = availableVoices.find(v => v.lang.startsWith("en-US")) || availableVoices[0];
-        setSelectedVoiceURI(defaultVoice.voiceURI);
+      if (availableVoices.length > 0 && !selectedVoiceURI) {
+        const defaultVoice = findBestVoiceForLanguage(textLanguage, availableVoices);
+        if (defaultVoice) {
+          setSelectedVoiceURI(defaultVoice.voiceURI);
+        }
       }
     };
 
     window.speechSynthesis.onvoiceschanged = handleVoicesChanged;
-    handleVoicesChanged();
+    handleVoicesChanged(); // Call it once to get the initial list
 
     return () => {
       window.speechSynthesis.onvoiceschanged = null;
       window.speechSynthesis.cancel();
     };
-  }, []);
+  }, [textLanguage, findBestVoiceForLanguage, selectedVoiceURI]);
 
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -107,6 +123,7 @@ export function HearSayClient() {
         const fileDataUri = reader.result as string;
         const result = await extractTextFromImage({ imageDataUri: fileDataUri });
         setText(result.extractedText);
+        setTextLanguage("en-US"); // Assume extracted text is English
         toast({
           title: "Text Extracted",
           description: "The text from the file has been loaded into the textbox.",
@@ -141,6 +158,34 @@ export function HearSayClient() {
     try {
       const result = await translateText({ text, targetLanguage });
       setText(result.translatedText);
+
+      // A simple map for language names to BCP 47 codes
+      const langCodeMap: { [key: string]: string } = {
+          "Spanish": "es",
+          "French": "fr",
+          "German": "de",
+          "Japanese": "ja",
+          "Mandarin Chinese": "zh",
+          "Hindi": "hi",
+          "Arabic": "ar",
+          "Urdu": "ur",
+          "English": "en",
+      };
+      const newLang = langCodeMap[targetLanguage] || 'en';
+      setTextLanguage(newLang);
+
+      const bestVoice = findBestVoiceForLanguage(newLang, voices);
+      if (bestVoice) {
+        setSelectedVoiceURI(bestVoice.voiceURI);
+      } else {
+        setSelectedVoiceURI(undefined);
+        toast({
+            title: "No Voice Found",
+            description: `No voice available for ${targetLanguage}. Playback may not work.`,
+            variant: "destructive",
+        });
+      }
+
       toast({
         title: "Text Translated",
         description: `The text has been translated to ${targetLanguage}.`,
@@ -167,17 +212,24 @@ export function HearSayClient() {
       return;
     }
 
+    const selectedVoice = voices.find(v => v.voiceURI === selectedVoiceURI);
+    if (!selectedVoice) {
+         toast({
+            title: "No Voice Selected",
+            description: "Please select a voice to generate speech.",
+            variant: "destructive",
+        });
+        return;
+    }
+
     setIsLoading(true);
     window.speechSynthesis.cancel();
     
     const utterance = new SpeechSynthesisUtterance(text);
     utteranceRef.current = utterance;
 
-    const selectedVoice = voices.find(v => v.voiceURI === selectedVoiceURI);
-    if (selectedVoice) {
-      utterance.voice = selectedVoice;
-      utterance.lang = selectedVoice.lang;
-    }
+    utterance.voice = selectedVoice;
+    utterance.lang = selectedVoice.lang; // Important for correct pronunciation
 
     utterance.onstart = () => {
       setIsPlaying(true);
@@ -193,7 +245,7 @@ export function HearSayClient() {
         console.error("SpeechSynthesisUtterance.onerror", event);
         toast({
             title: "Speech Error",
-            description: "An error occurred during speech synthesis.",
+            description: `An error occurred. Make sure the selected voice (${selectedVoice.lang}) can speak the language of the text.`,
             variant: "destructive",
         });
         setIsLoading(false);
@@ -216,6 +268,8 @@ export function HearSayClient() {
       }
     }
   };
+  
+  const canPlay = !!voices.find(v => v.voiceURI === selectedVoiceURI);
 
   return (
     <Card className="w-full max-w-6xl mx-auto shadow-2xl overflow-hidden rounded-2xl border-primary/10 bg-white/10 dark:bg-black/10 backdrop-blur-lg border dark:border-white/10">
@@ -274,7 +328,15 @@ export function HearSayClient() {
               <Textarea
                 id="text-input"
                 value={text}
-                onChange={(e) => setText(e.target.value)}
+                onChange={(e) => {
+                  setText(e.target.value);
+                  // Basic language detection approximation
+                  if (/[\u0600-\u06FF]/.test(e.target.value)) {
+                      setTextLanguage('ur');
+                  } else if (e.target.value.trim().length > 0) {
+                      setTextLanguage('en');
+                  }
+                }}
                 placeholder="Paste your text here..."
                 className="flex-grow text-base resize-none rounded-lg focus-visible:ring-primary/50 bg-transparent"
                 rows={12}
@@ -316,6 +378,7 @@ export function HearSayClient() {
                 <SelectTrigger
                   id="voice-select"
                   className="w-full h-14 text-base rounded-lg focus:ring-primary/50 bg-transparent"
+                  disabled={voices.length === 0}
                 >
                   <SelectValue placeholder="Choose a voice" />
                 </SelectTrigger>
@@ -346,7 +409,7 @@ export function HearSayClient() {
                     size="icon"
                     className="w-20 h-20 rounded-full border-2 border-primary/20 bg-background hover:bg-primary/10"
                     aria-label={isPlaying ? "Pause audio" : "Play audio"}
-                    disabled={isLoading || !text.trim()}
+                    disabled={isLoading || !text.trim() || !canPlay}
                   >
                     {isPlaying ? (
                       <Pause className="h-8 w-8" />
@@ -358,7 +421,7 @@ export function HearSayClient() {
 
               <Button
                 onClick={handleGenerateSpeech}
-                disabled={isLoading || !text.trim() || isPlaying}
+                disabled={isLoading || !text.trim() || isPlaying || !canPlay}
                 className="w-full h-14 text-lg font-bold rounded-lg transition-all duration-300 hover:shadow-lg hover:scale-105 active:scale-100 bg-primary/90 hover:bg-primary"
                 size="lg"
               >
@@ -378,5 +441,3 @@ export function HearSayClient() {
     </Card>
   );
 }
-
-    
