@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Pause, Play, ScanText, User, FileText, Image as ImageIcon, Languages } from "lucide-react";
+import { Loader2, Pause, Play, ScanText, User, FileText, Image as ImageIcon, Languages, StopCircle } from "lucide-react";
 import { useEffect, useRef, useState, useCallback } from "react";
 
 const languages = [
@@ -67,7 +67,6 @@ export function HearSayClient() {
     bestVoice = availableVoices.find(v => v.lang.startsWith(langPrefix));
     if (bestVoice) return bestVoice;
 
-
     // Default to first available voice if no match is found
     return null;
   }, []);
@@ -87,9 +86,15 @@ export function HearSayClient() {
     window.speechSynthesis.onvoiceschanged = handleVoicesChanged;
     handleVoicesChanged(); // Call it once to get the initial list
 
+    const handleBeforeUnload = () => {
+        window.speechSynthesis.cancel();
+    }
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
     return () => {
       window.speechSynthesis.onvoiceschanged = null;
       window.speechSynthesis.cancel();
+      window.removeEventListener('beforeunload', handleBeforeUnload);
     };
   }, [textLanguage, findBestVoiceForLanguage, selectedVoiceURI]);
 
@@ -234,7 +239,7 @@ export function HearSayClient() {
     utteranceRef.current = utterance;
 
     utterance.voice = selectedVoice;
-    utterance.lang = selectedVoice.lang; // Important for correct pronunciation
+    utterance.lang = selectedVoice.lang;
 
     utterance.onstart = () => {
       setIsPlaying(true);
@@ -260,18 +265,12 @@ export function HearSayClient() {
     window.speechSynthesis.speak(utterance);
   };
 
-  const togglePlayPause = () => {
-    if (!canPlay) return;
+  const handlePlayback = () => {
     if (isPlaying) {
-      window.speechSynthesis.pause();
+      window.speechSynthesis.cancel();
       setIsPlaying(false);
     } else {
-      if (utteranceRef.current && window.speechSynthesis.paused) {
-          window.speechSynthesis.resume();
-          setIsPlaying(true);
-      } else {
-          handleGenerateSpeech();
-      }
+      handleGenerateSpeech();
     }
   };
   
@@ -336,7 +335,7 @@ export function HearSayClient() {
                 value={text}
                 onChange={(e) => {
                   setText(e.target.value);
-                  // Basic language detection approximation
+                  if(isPlaying) window.speechSynthesis.cancel();
                   if (/[\u0600-\u06FF]/.test(e.target.value)) {
                       setTextLanguage('ur');
                   } else if (e.target.value.trim().length > 0) {
@@ -408,26 +407,9 @@ export function HearSayClient() {
               </Select>
             </div>
             <div className="mt-8 flex flex-col items-center gap-4">
-               <div className="flex items-center justify-center w-full gap-4">
-                <Button
-                    onClick={togglePlayPause}
-                    variant="outline"
-                    size="icon"
-                    className="w-20 h-20 rounded-full border-2 border-primary/20 bg-background hover:bg-primary/10"
-                    aria-label={isPlaying ? "Pause audio" : "Play audio"}
-                    disabled={isLoading || !text.trim() || !canPlay}
-                  >
-                    {isPlaying ? (
-                      <Pause className="h-8 w-8" />
-                    ) : (
-                      <Play className="h-8 w-8 ml-1" />
-                    )}
-                  </Button>
-              </div>
-
-              <Button
-                onClick={handleGenerateSpeech}
-                disabled={isLoading || !text.trim() || isPlaying || !canPlay}
+               <Button
+                onClick={handlePlayback}
+                disabled={isLoading || !text.trim() || !canPlay}
                 className="w-full h-14 text-lg font-bold rounded-lg transition-all duration-300 hover:shadow-lg hover:scale-105 active:scale-100 bg-primary/90 hover:bg-primary"
                 size="lg"
               >
@@ -435,6 +417,11 @@ export function HearSayClient() {
                   <>
                     <Loader2 className="mr-2 h-6 w-6 animate-spin" />
                     Generating...
+                  </>
+                ) : isPlaying ? (
+                  <>
+                    <StopCircle className="mr-2 h-6 w-6" />
+                    Stop
                   </>
                 ) : (
                   "Hear It Now"
