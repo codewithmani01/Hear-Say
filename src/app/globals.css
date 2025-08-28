@@ -89,12 +89,12 @@
 @layer components {
   .cursor-glow {
     position: fixed;
-    width: 200px;
-    height: 200px;
+    width: 100px;
+    height: 100px;
     border-radius: 9999px;
     background-color: hsla(0, 0%, 100%, 0.1);
-    backdrop-filter: blur(12px);
-    --webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(8px);
+    --webkit-backdrop-filter: blur(8px);
     pointer-events: none;
     z-index: 1000;
     transform: translate(-50%, -50%);
