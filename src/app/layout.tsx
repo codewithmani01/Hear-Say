@@ -1,7 +1,6 @@
 import type {Metadata} from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
-import { CursorGlow } from '@/components/cursor-glow';
 
 export const metadata: Metadata = {
   title: 'HearSay',
@@ -22,7 +21,6 @@ export default function RootLayout({
         <meta name="theme-color" content="#000000" />
       </head>
       <body className="font-body antialiased">
-        <CursorGlow />
         {children}
         <Toaster />
       </body>

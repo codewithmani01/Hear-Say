@@ -1,11 +1,12 @@
+import { BackgroundBubbles } from '@/components/background-bubbles';
 import { HearSayClient } from '@/components/hearsay-client';
 import { Instagram, Mail } from 'lucide-react';
 
 export default function Home() {
   return (
     <div className="flex flex-col min-h-screen">
-      <main className="flex-grow flex flex-col items-center justify-center w-full p-4">
-        <div className="fixed top-0 left-0 w-full h-full bg-gradient-to-br from-indigo-50 via-white to-cyan-100 dark:from-gray-900 dark:via-gray-800 dark:to-blue-900 -z-10" />
+      <main className="flex-grow flex flex-col items-center justify-center w-full p-4 relative">
+        <BackgroundBubbles />
         <HearSayClient />
       </main>
       <footer className="w-full text-center p-4 text-foreground/60">

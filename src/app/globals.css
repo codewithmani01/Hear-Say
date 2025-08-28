@@ -86,27 +86,32 @@
   }
 }
 
-@layer components {
-  .cursor-glow {
-    position: fixed;
-    width: 100px;
-    height: 100px;
-    border-radius: 9999px;
-    background-color: hsla(0, 0%, 100%, 0.1);
-    backdrop-filter: blur(8px);
-    --webkit-backdrop-filter: blur(8px);
-    pointer-events: none;
-    z-index: 1000;
-    transform: translate(-50%, -50%);
-    transition:
-      width 0.3s ease,
-      height 0.3s ease;
-    will-change: transform, width, height;
+@layer utilities {
+  @keyframes bubble {
+    0% {
+      transform: translateY(0) scale(1);
+      opacity: 0.7;
+    }
+    50% {
+      transform: translateY(-50px) scale(1.1);
+      opacity: 0.4;
+    }
+    100% {
+      transform: translateY(0) scale(1);
+      opacity: 0.7;
+    }
   }
 
-  @media (pointer: coarse) {
-    .cursor-glow {
-      display: none;
-    }
+  .animate-bubble-1 {
+    animation: bubble 25s infinite;
+  }
+  .animate-bubble-2 {
+    animation: bubble 20s infinite 5s;
+  }
+  .animate-bubble-3 {
+    animation: bubble 30s infinite 10s;
+  }
+   .animate-bubble-4 {
+    animation: bubble 35s infinite 15s;
   }
 }
