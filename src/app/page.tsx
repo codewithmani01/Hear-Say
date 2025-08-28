@@ -15,10 +15,10 @@ export default function Home() {
           <div className="flex flex-col sm:flex-row items-center gap-4">
             <p>Contact me for technical issues:</p>
             <div className="flex items-center gap-4">
-              <a href="mailto:your-email@example.com" aria-label="Email" className="hover:text-primary transition-colors">
+              <a href="mailto:codewithemmanuel@gmail.com" aria-label="Email" className="hover:text-primary transition-colors">
                 <Mail className="size-5" />
               </a>
-              <a href="https://instagram.com/your-profile" target="_blank" rel="noopener noreferrer" aria-label="Instagram" className="hover:text-primary transition-colors">
+              <a href="https://instagram.com/maniop.404" target="_blank" rel="noopener noreferrer" aria-label="Instagram" className="hover:text-primary transition-colors">
                 <Instagram className="size-5" />
               </a>
             </div>
