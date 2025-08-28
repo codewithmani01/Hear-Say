@@ -103,15 +103,15 @@
   }
 
   .animate-bubble-1 {
-    animation: bubble 25s infinite;
+    animation: bubble 15s infinite;
   }
   .animate-bubble-2 {
-    animation: bubble 20s infinite 5s;
+    animation: bubble 12s infinite 3s;
   }
   .animate-bubble-3 {
-    animation: bubble 30s infinite 10s;
+    animation: bubble 18s infinite 6s;
   }
    .animate-bubble-4 {
-    animation: bubble 35s infinite 15s;
+    animation: bubble 22s infinite 9s;
   }
 }
